@@ -1,0 +1,149 @@
+---
+title: "Heart Disease Analysis"
+author: "Arjun Sonani"
+date: "10/14/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Heart Disease Analysis
+
+This case study is about the analysis of the heart diseases.
+To get the data-set click !HERE(https://archive.ics.uci.edu/ml/datasets/heart+disease).
+
+## Attributes about the data-set:
+* age: age in years
+*sex: sex (1 = male; 0 = female) 
+*cp: chest pain type
+ -- Value 0: typical angina
+ -- Value 1: atypical angina
+ -- Value 2: non-anginal pain
+ -- Value 3: asymptomatic 
+*trestbps: resting blood pressure (in mm Hg on admission to the hospital) 
+*chol: serum cholestoral in mg/dl 
+*fbs: (fasting blood sugar > 120 mg/dl) (1 = true; 0 = false) 
+*restecg: resting electrocardiographic results
+ -- Value 0: normal
+ -- Value 1: having ST-T wave abnormality (T wave inversions and/or ST elevation or depression of > 0.05 mV)
+ -- Value 2: showing probable or definite left ventricular hypertrophy by Estes' criteria 
+*thalach: maximum heart rate achieved 
+*exang: exercise induced angina (1 = yes; 0 = no) 
+*oldpeak: ST depression induced by exercise relative to rest 
+*slope: the slope of the peak exercise ST segment
+ -- Value 1: upsloping
+ -- Value 2: flat
+ -- Value 3: downsloping 
+*ca: number of major vessels (0-3) colored by flourosopy 
+*thal: 3 = normal; 6 = fixed defect; 7 = reversable defect 
+*num: diagnosis of heart disease (angiographic disease status)
+ -- Value 0: < 50% diameter narrowing
+ -- Value 1: > 50% diameter narrowing
+ (in any major vessel: attributes 59 through 68 are vessels) 
+
+So, let us start by loading important libraries and the data-set:
+
+```{r }
+library(tidyverse)
+library(corrplot)
+library(ggplot2)
+data <- read.csv("heart.csv")
+```
+
+## Data Transformation:
+
+```{r }
+data2 <- data %>%
+  mutate(sex = if_else(sex == 1, "MALE", "FEMALE"),
+         fbs = if_else(fbs == 1, ">120", "<=120"),
+         exang = if_else(exang == 1, "YES", "NO"),
+         cp = if_else(cp == 1, "ATYPICAL ANGINA",
+                      if_else(cp == 2, "NON-ANGINAL PAIN", "ASYMPTOMATIC")),
+         restecg = if_else(restecg == 0, "NORMAL",
+                           if_else(restecg == 1, "ABNORMALITY", "PROBABLE OR DEFINITE")),
+         slope = as.factor(slope),
+         ca = as.factor(ca),
+         thal = as.factor(thal),
+         target = if_else(target == 1, "YES", "NO"),
+         ) %>%
+  mutate_if(is.character, as.factor) %>%
+  dplyr::select(target, sex, fbs, exang, cp, restecg, slope, ca, thal, everything())
+```
+
+## Data Visualization:
+
+### Bar Plots:
+
+*The Chart clearly shows that there are more amount of people suffering from some sort of heart diseases.
+
+```{r}
+ggplot(data2, aes(x=target,fill=target))+ 
+  geom_bar()+
+  xlab("Heart Disease")+
+  ylab("Count")+
+  ggtitle("Presence & Absence of Heart Disease")+
+  scale_fill_discrete(name = "Heart Disease", label = c("Absence", "Presence"))
+```
+
+*Here we have a chart of the age group which is the part of the data.
+*We can also see that major population of the data lies between age range of 55 to 60.
+(Here the elements from the age column in grouped and then the groups were counted; also the filter is put where the threshold is set to be 10 which means if any group with less then 10 instances will not be displayed in the chart. )
+
+```{r}
+data2 %>%
+  group_by(ï..age) %>%
+  count()%>%
+  filter(n>10)%>%
+  ggplot()+
+  geom_col(aes(ï..age, n), fill = "green")+
+  ggtitle("Age Analysis")+
+  xlab("Age")+
+  ylab("Age Count")
+```
+
+### Box Plots:
+
+*In the following box plot we can understand that the resting blood pressure of the patients measured on admission to the hospital.
+*We can say that in all the three chest pain types females are having higher blood pressure than males.
+
+```{r}
+data2 %>%
+  ggplot(aes(x=sex, y=trestbps))+
+  geom_boxplot(fill = "purple")+
+  xlab("Gender")+
+  ylab("Blood Pressure")+
+  facet_grid(~cp)
+```
+
+*In the following box plot we can understand that the cholesterol levels of the patients measured on admission to the hospital.
+*We can say that in all the three chest pain types females are having higher cholesterol levels than males.
+
+```{r}
+data2 %>%
+  ggplot(aes(x=sex, y=chol))+
+  geom_boxplot(fill = "orange")+
+  xlab("Gender")+
+  ylab("Cholestrol Level")+
+  facet_grid(~cp)
+```
+
+### Correlation:
+
+*By having a glance over the correlation chart we can interpret few thing like:
+- Age and blood pressure are slightly correlated.
+- Age and cholesterol are slightly correlated.
+- Age and thalach(max. heart rate achieved) are negatively correlated.
+
+```{r}
+library(corrplot)
+library(ggplot2)
+
+cor_heart <- cor(data2[, 10:14])
+cor_heart
+
+corrplot(cor_heart, method = "square", type="upper")
+
+```
+
